@@ -1,252 +1,265 @@
-import tkinter as tk
-from tkinter import messagebox, ttk, PhotoImage
-import openpyxl
+import kivy
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.image import Image
+from kivy.uix.scrollview import ScrollView
+from kivy.core.window import Window
+from kivy.utils import platform
+from kivy.properties import StringProperty
+from kivy.uix.popup import Popup
+from kivy.clock import mainthread
 from datetime import datetime
 import os
 import subprocess
-from PIL import Image, ImageTk
+import openpyxl
+from kivy.uix.widget import Widget
 
-class LoginApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Learning App Demo")
-        self.root.state('zoomed')
+kivy.require('2.0.0')
 
-        # Color Palette
-        self.primary_color = "#004299"
-        self.secondary_color = "#66B2FF"
-        self.accent_color = "#FFC107"
-        self.background_color = "#F8F8F8"
-        self.text_color = "#333333"
 
-        # Set root background color
-        self.root.configure(bg=self.background_color)
+class LoginApp(App):
+    current_path = StringProperty("Data")
+    username = StringProperty("")
+    password = StringProperty("")
+    welcome_username = StringProperty("")
+    app_title = "Learning Application Demo"  # Title
 
-        # Style configuration
-        self.style = ttk.Style(root)
-        self.style.configure('TButton',
-                             padding=5,
-                             relief="raised",
-                             background=self.secondary_color,
-                             foreground=self.text_color)
-        self.style.configure('TLabel',
-                             padding=5,
-                             font=('Arial', 12),
-                             background=self.background_color,
-                             foreground=self.text_color)
-        self.style.configure('Header.TLabel',
-                             font=('Arial', 18, 'bold'),
-                             background=self.background_color,
-                             foreground=self.primary_color)
+    def build(self):
+        Window.clearcolor = (248 / 255, 248 / 255, 248 / 255, 1)  # background color
+        self.root_layout = BoxLayout(orientation='vertical')
+        self.root_layout.add_widget(self.login_screen())
+        return self.root_layout
 
-        # Load and resize the logo image
-        self.logo_path = os.path.join("backend", "Logo.png")
-        pil_image = Image.open(self.logo_path)
-        pil_image = pil_image.resize((150, 75))  # Resize to 200x200
-        self.logo_image = ImageTk.PhotoImage(pil_image)
+    def create_top_layout(self):
+        top_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=150)
+        logo = Image(source='backend/Logo.jpg', size_hint=(None, None), size=(150, 150))
+        top_layout.add_widget(logo)
 
-        self.login_frame = None
-        self.welcome_frame = None
-        self.learning_frame = None
-        self.current_path = "Data"
-        self.login_screen()
+        # Title Label in the Middle
+        title_label = Label(text=self.app_title, color=(51 / 255, 51 / 255, 51 / 255, 1), font_size=24,
+                            halign='center', valign='middle', size_hint_x=0.6)
+        top_layout.add_widget(title_label)
+
+        # Spacer to push content to the right
+        top_layout.add_widget(Widget())
+        return top_layout
 
     def login_screen(self):
-        # Clear any existing frames
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
 
-        self.login_frame = tk.Frame(self.root, bg=self.background_color)
-        self.login_frame.pack(expand=True, fill="both", padx=20, pady=20)
+        top_layout = self.create_top_layout()
+        layout.add_widget(top_layout)
 
-        # Top frame for logo and other potential top elements
-        top_frame = tk.Frame(self.login_frame, bg=self.background_color)
-        top_frame.pack(fill="x")
+        # Centering layout
+        center_layout = BoxLayout(orientation='vertical', size_hint_y=0.5,
+                                  pos_hint={'center_x': 0.5, 'center_y': 0.5})
 
-        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
-        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
-        logo_label.pack(side="left", padx=10, pady=10)
+        form_layout = GridLayout(cols=2, spacing=20, size_hint_y=None, height=150)
+        form_layout.bind(minimum_height=form_layout.setter('height'))
 
-        # Inner frame to hold login form
-        inner_frame = tk.Frame(self.login_frame, bg="#ffffff")  # White background
-        inner_frame.place(relx=0.5, rely=0.5, anchor="center")
+        form_layout.add_widget(Label(text="Username:", color=(51 / 255, 51 / 255, 51 / 255, 1), font_size=18))
+        self.username_input = TextInput(multiline=False, size_hint_y=None, height=50, font_size=18)
+        form_layout.add_widget(self.username_input)
 
-        tk.Label(inner_frame, text="Username:", background="#ffffff", foreground=self.text_color).grid(row=0, column=0, padx=10, pady=5, sticky="e")
-        self.username_entry = tk.Entry(inner_frame)
-        self.username_entry.grid(row=0, column=1, padx=10, pady=5, sticky="w")
+        form_layout.add_widget(Label(text="Password:", color=(51 / 255, 51 / 255, 51 / 255, 1), font_size=18))
+        self.password_input = TextInput(multiline=False, size_hint_y=None, height=50, password=True,
+                                         font_size=18)
+        form_layout.add_widget(self.password_input)
 
-        tk.Label(inner_frame, text="Password:", background="#ffffff", foreground=self.text_color).grid(row=1, column=0, padx=10, pady=5, sticky="e")
-        self.password_entry = tk.Entry(inner_frame, show="*")
-        self.password_entry.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        center_layout.add_widget(form_layout)
 
-        login_button = ttk.Button(inner_frame, text="Login", command=self.check_credentials, style='TButton')
-        login_button.grid(row=2, column=0, columnspan=2, pady=10)
+        # Add a spacer to increase spacing between form and button
+        center_layout.add_widget(Widget(size_hint_y=0.1))
 
-        inner_frame.columnconfigure(0, weight=1)
-        inner_frame.columnconfigure(1, weight=1)
+        login_button = Button(text="Login", on_press=self.check_credentials, size_hint_y=None, height=50,
+                              background_color=(102 / 255, 178 / 255, 1, 1), font_size=18)
+        center_layout.add_widget(login_button)
 
-        inner_frame.rowconfigure(0, weight=1)
-        inner_frame.rowconfigure(1, weight=1)
-        inner_frame.rowconfigure(2, weight=1)
+        layout.add_widget(center_layout)
+        layout.add_widget(Widget(size_hint_y=1))  # Add a spacer to push content to the top
+
+        return layout
 
     def welcome_screen(self):
-        welcomeusername = self.username_entry.get()
-        # Clear any existing frames
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
 
-        self.welcome_frame = tk.Frame(self.root, bg=self.background_color)
-        self.welcome_frame.pack(expand=True, fill="both", padx=20, pady=20)
+        top_layout = self.create_top_layout()
+        layout.add_widget(top_layout)
 
-        # Top frame for logo and logout button
-        top_frame = tk.Frame(self.welcome_frame, bg=self.background_color)
-        top_frame.pack(fill="x")
+        bottom_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=75)
+        # Spacer to push logout button to the right
+        bottom_layout.add_widget(Widget())
 
-        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
-        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
-        logo_label.pack(side="left", padx=10, pady=10)
+        logout_button = Button(text="Logout", on_press=self.logout, size_hint_x=None, width=100, height=75,
+                               background_color=(102 / 255, 178 / 255, 1, 1))
+        bottom_layout.add_widget(logout_button)
 
-        ttk.Button(top_frame, text="Logout", command=self.login_screen, style='TButton').pack(side="right", padx=10, pady=10)
+        layout.add_widget(bottom_layout)
 
-        # Middle frame for content
-        middle_frame = tk.Frame(self.welcome_frame, bg="#ffffff")
-        middle_frame.place(relx=0.5, rely=0.5, anchor="center")
+        content_layout = BoxLayout(orientation='vertical', size_hint=(1, 0.5),
+                                   pos_hint={'center_x': 0.5, 'center_y': 0.5})
+        content_layout.add_widget(
+            Label(text=f"Welcome {self.username}!", font_size='24sp', color=(0, 66 / 255, 153 / 255, 1)))
+        content_layout.add_widget(
+            Label(text="You are logged in successfully!", color=(51 / 255, 51 / 255, 51 / 255, 1)))
+        continue_button = Button(text="Continue to Learning App", on_press=self.to_learning_screen,
+                                 size_hint_y=None,
+                                 height=40, background_color=(102 / 255, 178 / 255, 1, 1))
+        content_layout.add_widget(continue_button)
+        layout.add_widget(content_layout)
 
-        ttk.Label(middle_frame, text=f"Welcome {welcomeusername}!", style='Header.TLabel').pack(pady=20)
-        ttk.Label(middle_frame, text="You are logged in successfully!", style='TLabel').pack(pady=10)
-        ttk.Button(middle_frame, text="Continue to Learning App", command=self.learning_screen, style='TButton').pack(pady=20)
+        return layout
 
     def learning_screen(self):
-        # Clear any existing frames
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
 
-        self.learning_frame = tk.Frame(self.root, bg=self.background_color)
-        self.learning_frame.pack(expand=True, fill="both", padx=20, pady=20)
+        top_layout = self.create_top_layout()
+        layout.add_widget(top_layout)
 
-        # Top frame for logo, logout, path display, and back button
-        top_frame = tk.Frame(self.learning_frame, bg=self.background_color)
-        top_frame.pack(fill="x")
+        bottom_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=75)
+        back_button = Button(text="Back", on_press=self.go_back, size_hint_x=0.1, height=75,
+                             background_color=(102 / 255, 178 / 255, 1, 1))
+        self.back_button = back_button
+        self.back_button.disabled = (self.current_path == "Data")  # Disable button if in "Data" folder
+        bottom_layout.add_widget(back_button)
+        path_label = Label(text=f"Current Path: {self.current_path}", size_hint_x=0.4, height=75)
+        self.path_label = path_label
+        bottom_layout.add_widget(path_label)
 
-        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
-        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
-        logo_label.pack(side="left", padx=10, pady=10)
+        # Spacer to push logout button to the right
+        bottom_layout.add_widget(Widget())
 
-        self.back_button = ttk.Button(top_frame, text="Back", command=self.go_back, state="disabled", style='TButton')
-        self.back_button.pack(side="left", padx=10, pady=10)
-        self.path_label = ttk.Label(top_frame, text=f"Current Path: {self.current_path}", style='TLabel')
-        self.path_label.pack(side="left", padx=10, pady=10)
+        logout_button = Button(text="Logout", on_press=self.logout, size_hint_x=0.2, height=75,
+                               background_color=(102 / 255, 178 / 255, 1, 1))
+        bottom_layout.add_widget(logout_button)
 
-        ttk.Button(top_frame, text="Logout", command=self.login_screen, style='TButton').pack(side="right", padx=10, pady=10)
+        layout.add_widget(bottom_layout)
 
-        # Middle frame for content
-        middle_frame = tk.Frame(self.learning_frame, bg=self.background_color) # Changed background color here
-        middle_frame.place(relx=0.5, rely=0.5, anchor="center")
-
-        self.middle_frame = middle_frame
+        scroll_view = ScrollView()
+        self.content_layout = BoxLayout(orientation='vertical', size_hint_y=None)
+        self.content_layout.bind(minimum_height=self.content_layout.setter('height'))
+        scroll_view.add_widget(self.content_layout)
+        layout.add_widget(scroll_view)
         self.display_folder_contents()
+        return layout
 
     def display_folder_contents(self):
-        # Clear any existing widgets in the middle frame
-        for widget in self.middle_frame.winfo_children():
-            widget.destroy()
-
+        self.content_layout.clear_widgets()
         try:
             items = os.listdir(self.current_path)
             for item in items:
                 item_path = os.path.join(self.current_path, item)
                 if os.path.isfile(item_path):
-                    button = ttk.Button(self.middle_frame, text=f"File: {item}", command=lambda path=item_path: self.open_file(path), style='TButton')
-                    button.pack(pady=5)
+                    button = Button(text=item,
+                                    on_press=lambda instance, path=item_path: self.open_file(path),
+                                    size_hint_y=None,
+                                    height=40, background_color=(102 / 255, 178 / 255, 1, 1))
+                    self.content_layout.add_widget(button)
                 elif os.path.isdir(item_path):
-                    button = ttk.Button(self.middle_frame, text=f"Folder: {item}", command=lambda path=item_path: self.navigate_to_folder(path), style='TButton')
-                    button.pack(pady=5)
+                    button = Button(text=item,
+                                    on_press=lambda instance, path=item_path: self.navigate_to_folder(path),
+                                    size_hint_y=None, height=40, background_color=(102 / 255, 178 / 255, 1, 1))
+                    self.content_layout.add_widget(button)
         except Exception as e:
-            messagebox.showerror("Error", f"Error displaying folder contents: {e}")
+            self.show_popup("Error", f"Error displaying folder contents: {e}")
 
     def open_file(self, file_path):
         try:
-            if os.name == 'nt':
+            if platform == 'win':
                 os.startfile(file_path)
-            elif os.name == 'posix':
+            elif platform == 'linux' or platform == 'macosx':
                 subprocess.call(('open', file_path))
+            elif platform == 'android':
+                subprocess.call(('xdg-open', file_path))  # try this or find android specific method.
         except Exception as e:
-            messagebox.showerror("Error", f"Error opening file: {e}")
+            self.show_popup("Error", f"Error opening file: {e}")
 
     def navigate_to_folder(self, folder_path):
         self.current_path = folder_path
-        self.path_label['text'] = f"Current Path: {self.current_path}"
-        if self.current_path != "Data":
-            self.back_button['state'] = "normal"
-        else:
-            self.back_button['state'] = "disabled"
+        self.path_label.text = f"Current Path: {self.current_path}"
+        self.back_button.disabled = (self.current_path == "Data")
         self.display_folder_contents()
 
-    def go_back(self):
+    def go_back(self, instance):
         parent_path = os.path.dirname(self.current_path)
-        self.current_path = parent_path
-        self.path_label['text'] = f"Current Path: {self.current_path}"
-        if self.current_path != "Data":
-            self.back_button['state'] = "normal"
-        else:
-            self.back_button['state'] = "disabled"
-        self.display_folder_contents()
+        if parent_path != self.current_path:
+            self.current_path = parent_path
+            self.path_label.text = f"Current Path: {self.current_path}"
+            self.back_button.disabled = (self.current_path == "Data")
+            self.display_folder_contents()
 
-    def check_credentials(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+    def read_credentials_from_excel(self, file_path):
+        try:
+            wb = openpyxl.load_workbook(file_path)
+            sheet = wb.active
+            credentials = {}
+
+            for row in range(2, sheet.max_row + 1):  # Assuming header is in row 1
+                username = str(sheet.cell(row=row,
+                                          column=1).value).strip().lower()  # Convert to string, remove leading/trailing spaces, and convert to lowercase
+                password = sheet.cell(row=row, column=2).value
+                valid_till = sheet.cell(row=row, column=3).value
+
+                if valid_till is not None:
+                    if isinstance(valid_till, str):  # Check if valid_till is a string
+                        valid_till = datetime.strptime(valid_till,
+                                                       '%Y-%m-%d')  # Assuming date format is YYYY-MM-DD
+                    elif isinstance(valid_till, datetime):  # If it's already a datetime object, no need to parse
+                        pass
+                    else:
+                        self.show_popup("Error", f"Invalid date format for {username}.")
+                        continue
+
+                credentials[username] = (password, valid_till)
+
+            return credentials
+
+        except Exception as e:
+            self.show_popup("Error", f"Failed to read credentials: {e}")
+            return {}
+
+    def check_credentials(self, instance):
+        # Get text from input fields
+        self.username = self.username_input.text.strip().lower()
+        self.password = self.password_input.text
 
         # Read credentials from Excel file
         credentials = self.read_credentials_from_excel("Backend/Credentials.xlsx")
 
         # Validate credentials
-        if username in credentials:
-            stored_password, valid_till = credentials[username]
-            if password == stored_password:
+        if self.username in credentials:
+            stored_password, valid_till = credentials[self.username]
+            if self.password == stored_password:
                 if valid_till is None or datetime.now() <= valid_till:
-                    self.welcome_screen()
+                    self.to_welcome_screen()
                 else:
-                    messagebox.showerror("Login Failed", "Login credentials expired. Please contact support.")
+                    self.show_popup("Login Failed", "Login credentials expired. Please contact support.")
             else:
-                messagebox.showerror("Login Failed", "Invalid username or password.")
+                self.show_popup("Login Failed", "Invalid password.")
         else:
-            messagebox.showerror("Login Failed", "Invalid username or password.")
+            self.show_popup("Error",
+                            f"Username '{self.username}' not found in credentials. Please contact support.")
 
-    def read_credentials_from_excel(self, filename):
-        """Reads username/password/valid_till from an Excel file."""
-        try:
-            workbook = openpyxl.load_workbook(filename)
-            sheet = workbook.active
+    def to_welcome_screen(self):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(self.welcome_screen())
 
-            credentials = {}
-            for row in sheet.iter_rows(min_row=2, values_only=True):
-                if row[0] is not None and row[1] is not None:
-                    username, password, valid_till = row[0], row[1], row[2] if len(row) > 2 else None
+    def to_learning_screen(self, instance):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(self.learning_screen())
 
-                    if valid_till is not None and not isinstance(valid_till, datetime):
-                        try:
-                            valid_till = datetime.fromisoformat(valid_till)
-                        except ValueError:
-                            try:
-                                valid_till = datetime.strptime(str(valid_till), "%Y-%m-%d %H:%M:%S")
-                            except ValueError:
-                                try:
-                                    valid_till = workbook.epoch + (valid_till - 25569) * 86400
-                                    valid_till = datetime.utcfromtimestamp(valid_till)
-                                except:
-                                  valid_till = None
+    def logout(self, instance):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(self.login_screen())
 
-                    credentials[username] = (password, valid_till)
+    def show_popup(self, title, message):
+        popup = Popup(title=title, content=Label(text=message), size_hint=(None, None), size=(400, 100))
+        popup.open()
 
-            return credentials
-        except FileNotFoundError:
-            messagebox.showerror("Error", "Credentials file not found!")
-            return {}
-        except Exception as e:
-            messagebox.showerror("Error", f"Error reading credentials: {e}")
-            return {}
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = LoginApp(root)
-    root.mainloop()
+    LoginApp().run()
