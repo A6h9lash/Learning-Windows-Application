@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, PhotoImage
 import openpyxl
 from datetime import datetime
 import os
 import subprocess
+from PIL import Image, ImageTk
 
 class LoginApp:
     def __init__(self, root):
@@ -17,6 +18,9 @@ class LoginApp:
         self.accent_color = "#FFC107"
         self.background_color = "#F8F8F8"
         self.text_color = "#333333"
+
+        # Set root background color
+        self.root.configure(bg=self.background_color)
 
         # Style configuration
         self.style = ttk.Style(root)
@@ -35,6 +39,12 @@ class LoginApp:
                              background=self.background_color,
                              foreground=self.primary_color)
 
+        # Load and resize the logo image
+        self.logo_path = os.path.join("backend", "Logo.png")
+        pil_image = Image.open(self.logo_path)
+        pil_image = pil_image.resize((150, 75))  # Resize to 200x200
+        self.logo_image = ImageTk.PhotoImage(pil_image)
+
         self.login_frame = None
         self.welcome_frame = None
         self.learning_frame = None
@@ -48,6 +58,14 @@ class LoginApp:
 
         self.login_frame = tk.Frame(self.root, bg=self.background_color)
         self.login_frame.pack(expand=True, fill="both", padx=20, pady=20)
+
+        # Top frame for logo and other potential top elements
+        top_frame = tk.Frame(self.login_frame, bg=self.background_color)
+        top_frame.pack(fill="x")
+
+        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
+        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
+        logo_label.pack(side="left", padx=10, pady=10)
 
         # Inner frame to hold login form
         inner_frame = tk.Frame(self.login_frame, bg="#ffffff")  # White background
@@ -80,9 +98,13 @@ class LoginApp:
         self.welcome_frame = tk.Frame(self.root, bg=self.background_color)
         self.welcome_frame.pack(expand=True, fill="both", padx=20, pady=20)
 
-        # Top frame for logout button
+        # Top frame for logo and logout button
         top_frame = tk.Frame(self.welcome_frame, bg=self.background_color)
         top_frame.pack(fill="x")
+
+        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
+        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
+        logo_label.pack(side="left", padx=10, pady=10)
 
         ttk.Button(top_frame, text="Logout", command=self.login_screen, style='TButton').pack(side="right", padx=10, pady=10)
 
@@ -102,18 +124,23 @@ class LoginApp:
         self.learning_frame = tk.Frame(self.root, bg=self.background_color)
         self.learning_frame.pack(expand=True, fill="both", padx=20, pady=20)
 
-        # Top frame for logout, path display, and back button
+        # Top frame for logo, logout, path display, and back button
         top_frame = tk.Frame(self.learning_frame, bg=self.background_color)
         top_frame.pack(fill="x")
 
-        ttk.Button(top_frame, text="Logout", command=self.login_screen, style='TButton').pack(side="right", padx=10, pady=10)
+        logo_label = tk.Label(top_frame, image=self.logo_image, bg=self.background_color)
+        logo_label.image = self.logo_image  # Keep a reference to prevent garbage collection
+        logo_label.pack(side="left", padx=10, pady=10)
+
         self.back_button = ttk.Button(top_frame, text="Back", command=self.go_back, state="disabled", style='TButton')
         self.back_button.pack(side="left", padx=10, pady=10)
         self.path_label = ttk.Label(top_frame, text=f"Current Path: {self.current_path}", style='TLabel')
         self.path_label.pack(side="left", padx=10, pady=10)
 
+        ttk.Button(top_frame, text="Logout", command=self.login_screen, style='TButton').pack(side="right", padx=10, pady=10)
+
         # Middle frame for content
-        middle_frame = tk.Frame(self.learning_frame, bg="#ffffff")
+        middle_frame = tk.Frame(self.learning_frame, bg=self.background_color) # Changed background color here
         middle_frame.place(relx=0.5, rely=0.5, anchor="center")
 
         self.middle_frame = middle_frame
@@ -170,7 +197,7 @@ class LoginApp:
         password = self.password_entry.get()
 
         # Read credentials from Excel file
-        credentials = self.read_credentials_from_excel("credentials.xlsx")
+        credentials = self.read_credentials_from_excel("Backend/Credentials.xlsx")
 
         # Validate credentials
         if username in credentials:
